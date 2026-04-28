@@ -1,0 +1,5 @@
+wechat-clawbot
+openai
+python-dotenv
+python-docx
+pypdf

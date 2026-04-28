@@ -1,0 +1,34 @@
+.env
+*.log
+*.pid
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+__pycache__/
+*.pyc
+
+# Runtime state
+sessions.json
+interview_corpus_cache.json
+reviews/
+answers/
+app/reviews/
+app/answers/
+app/resume_materials/
+app/AI面试背景材料.generated.md
+
+# Private resume/project materials
+resume_materials/
+简历原料库/
+*.docx
+*.pdf
+*.jpg
+*.jpeg
+*.png
+
+# Credentials
+.claude/
+.codex/
+.claude-to-im/
+account.json
+credentials.json
