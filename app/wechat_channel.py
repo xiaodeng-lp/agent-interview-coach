@@ -61,16 +61,25 @@ async def run_wechat_bot(
     allowed_user_id = os.environ.get("ALLOWED_WECHAT_USER_ID", "").strip()
     cdn_base_url = os.environ.get("WECHAT_CDN_BASE_URL", CDN_BASE_URL)
     seen: set[str] = set()
+    poll_error_count = 0
 
     log(f"微信账号已载入: {account.account_id}")
     log("开始监听微信消息。按 Ctrl+C 停止。")
 
     while True:
-        resp = await get_updates(
-            base_url=account.base_url,
-            token=account.token,
-            get_updates_buf=get_updates_buf,
-        )
+        try:
+            resp = await get_updates(
+                base_url=account.base_url,
+                token=account.token,
+                get_updates_buf=get_updates_buf,
+            )
+            poll_error_count = 0
+        except Exception as exc:
+            poll_error_count += 1
+            delay = min(60, 2 * poll_error_count)
+            log(f"微信长轮询失败，将在 {delay}s 后重试: {type(exc).__name__}: {exc}")
+            await asyncio.sleep(delay)
+            continue
         if resp.get_updates_buf:
             get_updates_buf = resp.get_updates_buf
             save_get_updates_buf(sync_path, get_updates_buf)
@@ -97,21 +106,28 @@ async def run_wechat_bot(
             )
             session = sessions.setdefault(user_id, ChatSession())
 
-            uploaded = await import_wechat_file(msg.item_list, cdn_base_url)
+            try:
+                uploaded = await import_wechat_file(msg.item_list, cdn_base_url)
+            except Exception as exc:
+                log(f"微信文件导入失败: {type(exc).__name__}: {exc}")
+                uploaded = None
             if uploaded:
                 MATERIALS_INBOX.mkdir(parents=True, exist_ok=True)
                 update_env_value("RESUME_SOURCE_DIR", str(MATERIALS_INBOX))
                 source_dir = MATERIALS_INBOX
                 corpus = ensure_corpus(source_dir, refresh=True)
                 save_sessions(sessions)
-                await send_text(
-                    user_id,
-                    f"已收到资料文件：{uploaded.name}\n"
-                    f"已自动导入资料入口：{MATERIALS_INBOX}\n"
-                    f"当前抽取到 {len(corpus)} 个资料片段。\n"
-                    "下一步可以发：/生成背景",
-                    opts,
-                )
+                try:
+                    await send_text(
+                        user_id,
+                        f"已收到资料文件：{uploaded.name}\n"
+                        f"已自动导入资料入口：{MATERIALS_INBOX}\n"
+                        f"当前抽取到 {len(corpus)} 个资料片段。\n"
+                        "下一步可以发：/生成背景",
+                        opts,
+                    )
+                except Exception as exc:
+                    log(f"微信回复发送失败: {type(exc).__name__}: {exc}")
                 continue
 
             if not body:
@@ -120,7 +136,10 @@ async def run_wechat_bot(
             log(f"收到 {user_id}: {body[:80]}")
             if body.strip() in {"/刷新", "刷新"}:
                 corpus = ensure_corpus(source_dir, refresh=True)
-                await send_text(user_id, f"已刷新资料库，共 {len(corpus)} 个资料片段。", opts)
+                try:
+                    await send_text(user_id, f"已刷新资料库，共 {len(corpus)} 个资料片段。", opts)
+                except Exception as exc:
+                    log(f"微信回复发送失败: {type(exc).__name__}: {exc}")
                 continue
 
             try:
@@ -138,11 +157,17 @@ async def run_wechat_bot(
 
             if command_reply:
                 save_sessions(sessions)
-                await send_text(user_id, command_reply, opts)
+                try:
+                    await send_text(user_id, command_reply, opts)
+                except Exception as exc:
+                    log(f"微信回复发送失败: {type(exc).__name__}: {exc}")
                 continue
 
             prefix = "收到。我按当前阶段和模式追问。" if session.mode == "只面试模式" else "收到，我先按面试官视角判断一下。"
-            await send_text(user_id, prefix, opts)
+            try:
+                await send_text(user_id, prefix, opts)
+            except Exception as exc:
+                log(f"微信回复发送失败: {type(exc).__name__}: {exc}")
             try:
                 reply = generate_interview_reply(
                     client=client,
@@ -166,4 +191,7 @@ async def run_wechat_bot(
             session.history = session.history[-16:]
             session.updated_at = time.time()
             save_sessions(sessions)
-            await send_text(user_id, reply, opts)
+            try:
+                await send_text(user_id, reply, opts)
+            except Exception as exc:
+                log(f"微信回复发送失败: {type(exc).__name__}: {exc}")
