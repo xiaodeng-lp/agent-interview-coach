@@ -352,10 +352,9 @@ Before restarting WeChat bot:
 - bot is not already running.
 - no secrets were printed or committed.
 
-## 14. Open Questions
+## 14. 待确认问题
 
-1. Does packyapi support Chat Completions for `gpt-5.5`, or only Responses?
-2. Does packyapi return an OpenAI SDK `Response` object, a dict, or a stringified dict for `responses.create`?
-3. Should WeChat replies have an additional maximum total character cap, even after model parsing is fixed?
-4. Should `smoke_test.py --model` update `docs/TEST_LOG.md` automatically, or remain manual?
-
+1. packyapi 对 `gpt-5.5` 是否支持 Chat Completions，还是只支持 Responses？
+2. packyapi 的 `responses.create` 返回值到底是 OpenAI SDK 的 `Response` 对象、dict，还是字符串化后的 dict？
+3. 即使模型响应解析已经修复，微信回复是否还需要额外设置总字符数上限？
+4. `smoke_test.py --model` 是否应该自动更新 `docs/TEST_LOG.md`，还是保持人工记录？

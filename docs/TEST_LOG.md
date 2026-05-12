@@ -328,6 +328,23 @@ This file records validation history for Agent Interview Coach.
   Pass
 - Residual risk: retrieval remains priority + keyword heuristic only; this change intentionally does not add BM25, embeddings, or new dependencies.
 
+### Issue 17: Chinese Text Repair Pass
+
+- Date: 2026-05-12
+- Scope: `app/`, `docs/PROJECT_STATE.md`, `docs/CONTEXT_AND_LIGHT_RAG_DESIGN.md`, `docs/WECHAT_REPLY_BURST_RCA.md`
+- Problem: Windows terminal output could make valid UTF-8 Chinese look garbled, while earlier project notes still listed Chinese repair as a next step.
+- What changed:
+  - verified app and docs files decode as UTF-8
+  - confirmed key runtime user-facing prompts in `commands.py`, `engine.py`, `cli_chat.py`, and `interview_corpus.py` are stored as real Chinese text
+  - localized remaining English open-question sections in key design/RCA docs
+  - updated `PROJECT_STATE.md` so future agents do not treat PowerShell display mojibake as file corruption
+- Verification:
+  - `python C:\Users\PC\.codex\skills\windows-utf8-chinese\scripts\check_utf8_text.py --paths app docs AGENTS.md README.md .env.example`
+  - UTF-8 Python inspection of key runtime prompt files
+- Status:
+  Pass
+- Residual risk: PowerShell may still display Chinese incorrectly unless the terminal session is configured for UTF-8.
+
 ## Re-Check Items For Next Session
 
 1. Reconfirm the active API key / provider configuration before testing replies.

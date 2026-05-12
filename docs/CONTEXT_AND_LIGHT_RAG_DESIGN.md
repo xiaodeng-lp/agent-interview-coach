@@ -500,13 +500,13 @@ Main risks reviewers should watch:
 - BM25/embedding dependency could weaken local-first simplicity.
 - Existing mojibake in code comments or prompt strings can make maintenance harder.
 
-## 15. Open Questions
+## 15. 待确认问题
 
-1. Should evidence source titles be visible to the WeChat user, or only used internally?
-2. Should `/当前状态` be available in WeChat, CLI only, or behind a debug env flag?
-3. Should generated background material be treated as strong evidence or only as a summary layer?
-4. Should user-uploaded latest files get temporary priority over older corpus files?
-5. Should the system refuse to answer experience questions when evidence is empty, or provide a generic learning explanation plus a clarification question?
+1. 证据来源文件名是否应该直接展示给微信用户，还是只在内部诊断里使用？
+2. `/当前状态` 应该同时支持微信和 CLI，还是只在 CLI 或 debug 开关下开放？
+3. 生成的背景材料应该作为强证据使用，还是只作为简历/项目材料的摘要层？
+4. 用户最新上传的文件是否应该临时获得高于旧 corpus 文件的优先级？
+5. 当证据为空时，系统应该拒绝回答经历类问题，还是给通用学习解释并追问一个澄清问题？
 
 ## 16. Recommended Decision
 
