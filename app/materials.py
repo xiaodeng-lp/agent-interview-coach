@@ -27,10 +27,17 @@ def ensure_corpus(source_dir: Path, refresh: bool = False):
     if refresh or not DEFAULT_CACHE_PATH.exists():
         log(f"正在读取简历资料目录: {source_dir}")
         corpus = build_corpus(source_dir)
-        save_corpus_cache(corpus, DEFAULT_CACHE_PATH)
+        save_corpus_cache(corpus, DEFAULT_CACHE_PATH, source_dir)
         log(f"资料库缓存完成: {len(corpus)} 个片段")
         return corpus
-    corpus = load_corpus_cache(DEFAULT_CACHE_PATH)
+    try:
+        corpus = load_corpus_cache(DEFAULT_CACHE_PATH, expected_source_dir=source_dir)
+    except ValueError as exc:
+        log(f"Corpus cache unavailable; rebuilding: {exc}")
+        corpus = build_corpus(source_dir)
+        save_corpus_cache(corpus, DEFAULT_CACHE_PATH, source_dir)
+        log(f"Corpus cache rebuilt: {len(corpus)} chunks")
+        return corpus
     log(f"已载入资料库缓存: {len(corpus)} 个片段")
     return corpus
 

@@ -19,11 +19,24 @@ from engine import generate_interview_reply
 from interview_corpus import CorpusChunk
 from materials import ensure_corpus, import_wechat_file, update_env_value
 from paths import MATERIALS_INBOX
-from session_store import ChatSession, load_sessions, record_training_result, save_sessions
+from session_store import (
+    ChatSession,
+    compact_history_message,
+    load_sessions,
+    record_training_result,
+    save_sessions,
+)
 
 
 def log(message: str) -> None:
     print(f"[coach-bot] {message}", flush=True)
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def split_wechat_text(text: str, limit: int = 1600) -> list[str]:
@@ -43,8 +56,9 @@ def split_wechat_text(text: str, limit: int = 1600) -> list[str]:
 
 
 async def send_text(to_user: str, text: str, opts: WeixinApiOptions) -> None:
+    timeout = float(os.environ.get("WECHAT_SEND_TIMEOUT_SECONDS", "20"))
     for part in split_wechat_text(text):
-        await send_message_weixin(to_user, part, opts)
+        await asyncio.wait_for(send_message_weixin(to_user, part, opts), timeout=timeout)
         await asyncio.sleep(0.3)
 
 
@@ -60,8 +74,10 @@ async def run_wechat_bot(
     get_updates_buf = load_get_updates_buf(sync_path) or ""
     allowed_user_id = os.environ.get("ALLOWED_WECHAT_USER_ID", "").strip()
     cdn_base_url = os.environ.get("WECHAT_CDN_BASE_URL", CDN_BASE_URL)
+    skip_old_messages_on_start = env_flag("SKIP_OLD_WECHAT_MESSAGES_ON_START", True)
     seen: set[str] = set()
     poll_error_count = 0
+    first_poll = True
 
     log(f"微信账号已载入: {account.account_id}")
     log("开始监听微信消息。按 Ctrl+C 停止。")
@@ -83,6 +99,14 @@ async def run_wechat_bot(
         if resp.get_updates_buf:
             get_updates_buf = resp.get_updates_buf
             save_get_updates_buf(sync_path, get_updates_buf)
+
+        if first_poll and skip_old_messages_on_start:
+            skipped = len(resp.msgs or [])
+            if skipped:
+                log(f"已跳过启动前积压微信消息 {skipped} 条。请重新发送需要回复的最新问题。")
+            first_poll = False
+            continue
+        first_poll = False
 
         for msg in resp.msgs or []:
             if msg.message_type != MessageType.USER:
@@ -163,7 +187,12 @@ async def run_wechat_bot(
                     log(f"微信回复发送失败: {type(exc).__name__}: {exc}")
                 continue
 
-            prefix = "收到。我按当前阶段和模式追问。" if session.mode == "只面试模式" else "收到，我先按面试官视角判断一下。"
+            if session.mode == "教练模式":
+                prefix = "收到，已按教练模式来。我先讲清楚，再帮你整理成面试说法。"
+            elif session.mode == "只面试模式":
+                prefix = "收到。我按当前阶段和模式追问。"
+            else:
+                prefix = "收到，我先按面试官视角判断一下。"
             try:
                 await send_text(user_id, prefix, opts)
             except Exception as exc:
@@ -184,11 +213,11 @@ async def run_wechat_bot(
             record_training_result(session, body, reply)
             session.history.extend(
                 [
-                    {"role": "user", "content": body},
-                    {"role": "assistant", "content": reply},
+                    {"role": "user", "content": compact_history_message("user", body)},
+                    {"role": "assistant", "content": compact_history_message("assistant", reply)},
                 ]
             )
-            session.history = session.history[-16:]
+            session.history = session.history[-8:]
             session.updated_at = time.time()
             save_sessions(sessions)
             try:

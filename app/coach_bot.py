@@ -30,7 +30,7 @@ async def run_bot(refresh_corpus: bool = False) -> None:
         raise RuntimeError("没有找到微信登录凭据。请先运行：wechat-clawbot-cc setup")
 
     source_dir = current_source_dir_from_env()
-    max_context_chars = int(os.environ.get("MAX_CONTEXT_CHARS", "18000"))
+    max_context_chars = int(os.environ.get("MAX_CONTEXT_CHARS", "6000"))
     corpus = ensure_corpus(source_dir, refresh=refresh_corpus)
     client = create_model_client()
     await run_wechat_bot(account, client, source_dir, corpus, max_context_chars)

@@ -11,7 +11,7 @@ from engine import generate_interview_reply
 from materials import current_source_dir_from_env, ensure_corpus
 from model_client import create_model_client
 from paths import ENV_PATH
-from session_store import ChatSession, record_training_result
+from session_store import ChatSession, compact_history_message, record_training_result
 
 
 def print_reply(text: str) -> None:
@@ -25,7 +25,7 @@ async def run_cli(refresh_corpus: bool = False) -> None:
 
     client = create_model_client()
     source_dir = current_source_dir_from_env()
-    max_context_chars = int(os.environ.get("MAX_CONTEXT_CHARS", "18000"))
+    max_context_chars = int(os.environ.get("MAX_CONTEXT_CHARS", "6000"))
     corpus = ensure_corpus(source_dir, refresh=refresh_corpus)
     session = ChatSession()
     user_id = "cli-user"
@@ -70,11 +70,11 @@ async def run_cli(refresh_corpus: bool = False) -> None:
         record_training_result(session, user_text, reply)
         session.history.extend(
             [
-                {"role": "user", "content": user_text},
-                {"role": "assistant", "content": reply},
+                {"role": "user", "content": compact_history_message("user", user_text)},
+                {"role": "assistant", "content": compact_history_message("assistant", reply)},
             ]
         )
-        session.history = session.history[-16:]
+        session.history = session.history[-8:]
         print_reply(reply)
 
 

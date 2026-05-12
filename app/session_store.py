@@ -12,6 +12,48 @@ from paths import ANSWERS_DIR, REVIEW_DIR, SESSIONS_PATH
 from prompts import WEAKNESS_KEYWORDS
 
 
+UNCERTAIN_ANSWER_MARKERS = (
+    "不会",
+    "不知道",
+    "不清楚",
+    "不太懂",
+    "不懂",
+    "答不上来",
+    "没思路",
+    "没有思路",
+    "不了解",
+)
+
+
+RAW_PROVIDER_MARKERS = (
+    "ChatCompletion(",
+    "Response(",
+    "openai.types",
+    "resp_",
+    "incomplete_details",
+    "output_text=None",
+    "output=[]",
+    '"created_at"',
+    "'created_at'",
+    "created_at=",
+    '"metadata"',
+    "'metadata'",
+    "metadata=",
+)
+
+ERROR_DUMP_MARKERS = (
+    "Traceback (most recent call last)",
+    "During handling of the above exception",
+    "Exception ignored in:",
+    "APIError",
+    "RateLimitError",
+    "AuthenticationError",
+)
+
+RAW_RESPONSE_PLACEHOLDER = "[model response parse error omitted]"
+ERROR_DUMP_PLACEHOLDER = "[error output omitted]"
+
+
 @dataclass
 class ChatSession:
     stage: str = "电话筛选面"
@@ -27,14 +69,22 @@ class ChatSession:
 def load_sessions() -> dict[str, ChatSession]:
     try:
         raw = json.loads(SESSIONS_PATH.read_text("utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        backup_corrupt_file(SESSIONS_PATH)
+        return {}
+    if not isinstance(raw, dict):
+        backup_corrupt_file(SESSIONS_PATH)
         return {}
     sessions: dict[str, ChatSession] = {}
     for user_id, payload in raw.items():
+        if not isinstance(payload, dict):
+            continue
         sessions[user_id] = ChatSession(
             stage=payload.get("stage", "电话筛选面"),
             mode=payload.get("mode", "技术面模式"),
-            history=payload.get("history", [])[-16:],
+            history=sanitize_history(payload.get("history", []), max_items=16),
             weaknesses=payload.get("weaknesses", {}),
             score_history=payload.get("score_history", [])[-80:],
             answer_bank=payload.get("answer_bank", [])[-80:],
@@ -45,8 +95,74 @@ def load_sessions() -> dict[str, ChatSession]:
 
 
 def save_sessions(sessions: dict[str, ChatSession]) -> None:
+    for session in sessions.values():
+        session.history = sanitize_history(session.history, max_items=16)
     payload = {user_id: asdict(session) for user_id, session in sessions.items()}
-    SESSIONS_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), "utf-8")
+    atomic_write_json(SESSIONS_PATH, payload)
+
+
+def atomic_write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_name(f"{path.name}.tmp")
+    temp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_path.replace(path)
+
+
+def backup_corrupt_file(path: Path) -> Path | None:
+    if not path.exists():
+        return None
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = path.with_name(f"{path.name}.corrupt.{stamp}")
+    path.replace(backup_path)
+    return backup_path
+
+
+def compact_history_message(role: str, text: str) -> str:
+    if contains_error_dump(text):
+        return ERROR_DUMP_PLACEHOLDER
+    if contains_raw_provider_response(text):
+        return RAW_RESPONSE_PLACEHOLDER
+    normalized = re.sub(r"\s+", " ", text).strip()
+    if not normalized:
+        return ""
+    limit = 220 if role == "assistant" else 320
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: limit - 3].rstrip() + "..."
+
+
+def contains_raw_provider_response(text: str) -> bool:
+    return any(marker in text for marker in RAW_PROVIDER_MARKERS)
+
+
+def contains_error_dump(text: str) -> bool:
+    return any(marker in text for marker in ERROR_DUMP_MARKERS)
+
+
+def sanitize_history_message(message: Any) -> dict[str, str] | None:
+    if not isinstance(message, dict):
+        return None
+    role = message.get("role")
+    if role not in {"user", "assistant"}:
+        return None
+    content = message.get("content")
+    if not isinstance(content, str):
+        return None
+    cleaned = compact_history_message(role, content)
+    if not cleaned:
+        return None
+    return {"role": role, "content": cleaned}
+
+
+def sanitize_history(history: Any, max_items: int = 16) -> list[dict[str, str]]:
+    if not isinstance(history, list):
+        return []
+    cleaned: list[dict[str, str]] = []
+    for item in history:
+        sanitized = sanitize_history_message(item)
+        if sanitized is not None:
+            cleaned.append(sanitized)
+    return cleaned[-max_items:]
 
 
 def reset_session(session: ChatSession) -> None:
@@ -60,12 +176,14 @@ def reset_session(session: ChatSession) -> None:
     session.updated_at = time.time()
 
 
-def format_weaknesses(session: ChatSession) -> str:
+def format_weaknesses(session: ChatSession, max_items: int = 10) -> str:
     if not session.weaknesses:
         return "现在还没有记录到稳定薄弱点。继续答几轮，我会开始抓你的短板。"
     items = sorted(session.weaknesses.items(), key=lambda item: item[1], reverse=True)
     lines = ["当前累计薄弱点："]
-    for name, count in items[:10]:
+    if max_items > 0:
+        items = items[:max_items]
+    for name, count in items:
         lines.append(f"- {name}: {count}")
     return "\n".join(lines)
 
@@ -154,6 +272,8 @@ def extract_score(reply: str) -> dict[str, Any]:
 
 def extract_weaknesses(reply: str, user_text: str) -> list[str]:
     found: list[str] = []
+    if any(marker in user_text.lower() for marker in UNCERTAIN_ANSWER_MARKERS):
+        found.append("答不上来/概念不清")
     block_match = re.search(r"【薄弱点】(?P<block>.*?)(?:【|$)", reply, flags=re.S)
     if block_match:
         for line in block_match.group("block").splitlines():
