@@ -1,404 +1,227 @@
-# Agent Interview Coach
+<div align="center">
 
-> 简历写得很漂亮，面试一问就发慌？让 AI 面试官替你先问到崩。
+# WeChat Interview Coach
 
-**Agent Interview Coach** 是一个面向 AI/Agent 岗位的本地面试陪练工具。  
-你把简历、项目文档、复盘笔记丢进去，它会自动整理成“面试官视角”的背景材料，然后通过 **微信** 或 **命令行** 追着你练：问项目、拆细节、打分、抓漏洞、生成复盘，还会把更好的回答沉淀成标准答案。
+### 把微信变成你的 AI 面试官
 
-它不是温柔题库，也不是泛泛聊天。  
-它更像一个提前坐在你对面的技术面试官：你简历上写了什么，它就沿着什么追；你哪里说虚了，它就继续往下问。
+**专治 AI 应用 / Agent / RAG / MCP / LLM 工程岗 —— 读你自己的简历，动态追问，实时打分，自动复盘**
 
-## 你是不是也遇到过这些问题？
+<br>
 
-- 简历上写了 Agent、RAG、MCP、LangGraph、LoRA、vLLM，真被问到只能解释名词。
-- 项目能跑，README 也能写，但说不清“我到底做了哪一块”。
-- 面试官问“失败怎么办、怎么评估、怎么上线”，回答立刻变空。
-- 自我介绍像背稿，转岗/转方向动机听起来不够可信。
-- 找 ChatGPT 练面试，它太礼貌、太容易放过你，不会持续拷问简历漏洞。
-- 每次面完都知道自己答得烂，但不知道到底烂在哪里、下一轮该怎么补。
+<img src="docs/demo.gif" alt="WeChat Interview Coach Demo" width="720">
 
-**Agent Interview Coach** 做的事情很直接：  
-把“写在简历上的项目”，训练成“面试里讲得清楚、经得起追问的经历”。
+<br><br>
 
-```text
-上传简历 / 项目材料
-  -> 自动生成面试官背景材料
-  -> 微信或 CLI 开始模拟面试
-  -> 按阶段动态追问
-  -> 每轮打分、抓薄弱点
-  -> 生成复盘和标准答案
-  -> 下一轮继续针对短板追问
-```
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![WeChat Bot](https://img.shields.io/badge/WeChat-Bot-07C160?logo=wechat&logoColor=white)](#)
+[![OpenAI Compatible](https://img.shields.io/badge/LLM-OpenAI%20Compatible-412991?logo=openai&logoColor=white)](https://openai.com/)
+[![Local First](https://img.shields.io/badge/Local-First-success)](#privacy)
+[![Platform](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows)](#)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
-## 它适合谁？
+<sub><b>[快速开始](#-快速开始)</b> · <b>[为什么做](#-为什么做这个)</b> · <b>[核心玩法](#-核心玩法)</b> · <b>[指令速查](#-指令速查)</b> · <b>[隐私](#-隐私)</b></sub>
 
-- 准备 AI 应用开发、Agent、RAG、LLM 后端岗位的人。
-- 简历里有项目，但担心项目经不起细问的人。
-- 靠教程、开源项目、vibe coding 做出 demo，想把项目讲扎实的人。
-- 转岗/转方向，需要把动机和项目逻辑讲可信的人。
-- 想在手机微信里碎片化练面试的人。
-
-> 当前项目是 experimental / MVP。微信能力依赖 `wechat-clawbot` 及其上游服务
+</div>
 
 ---
 
-## 30 秒看效果：它到底能帮你练什么？
+## 💡 为什么做这个
 
-### 1. 先吃掉你的简历和项目材料
+市面上的 AI 面试陪练要么**只会背八股**，要么**根本不看你简历**，聊两句就露馅。
 
-仓库提供了一套完全虚构的 demo，不包含真实个人信息：
+**WeChat Interview Coach** 把你**本地的简历 / 项目原料**喂给大模型，在你**每天都在用的微信里**，像真正的面试官一样：
 
-- [examples/sample_resume.md](examples/sample_resume.md)
-- [examples/sample_project_support_qa_agent.md](examples/sample_project_support_qa_agent.md)
-- [examples/sample_project_kb_assistant.md](examples/sample_project_kb_assistant.md)
+| 别的陪练 | 这个 |
+|---|---|
+| 题库题 → 你背答案 | **只问你简历里写过的东西**，编不出来就当场露馅 |
+| "这答案不错" → 无了 | **每轮四维打分**：可信度 / 技术准确性 / 表达结构 / 风险点 |
+| 聊完就聊完了 | **自动记薄弱点**：MCP、LangGraph、RAG 评估、部署、转行动机…… |
+| 一次性对话 | **自动复盘 + 可背的标准答案** 沉淀到本地文件 |
+| 要上网页、开新 App | **直接在微信聊**，简历 drag-and-drop 发进来就行 |
+| 数据传云端 | **纯本地运行**，简历不出你的电脑 |
 
-候选人项目包括：
-
-- **Support QA Agent**：客服质检辅助 Agent
-- **Knowledge Base Assistant**：企业知识库 RAG 助手
-- **Ticket Routing Agent**：工单分流 Agent
-
-### 2. 自动生成“面试官视角”的背景材料
-
-运行：
-
-```text
-/生成背景
-```
-
-得到类似：
-
-[examples/sample_generated_background.md](examples/sample_generated_background.md)
-
-```text
-候选人的优势是：有后端开发基础，做过多个 LLM 应用项目，覆盖 Agent workflow、RAG、tool calling、结构化输出、评估和简单部署。
-
-候选人的风险是：项目多为学习/原型性质，需要避免包装成生产级系统；同时要能讲清楚自己具体做了哪些模块，而不是只堆 Agent、RAG、MCP 这些名词。
-```
-
-### 3. 像技术面试官一样继续追问
-
-```text
-你说 Support QA Agent 里用了 tool calling。
-请你具体说一个 tool 的输入 schema、输出字段，以及工具失败时 Agent 怎么处理。
-```
-
-如果你回答太泛，它不会客气，会继续往细节里压：
-
-```text
-【反馈】
-可信度：中等。你确实知道工具调用的大概流程，但回答太泛，像是在讲概念。
-
-技术准确性：偏弱。你没有说 schema、输出结构、错误类型，也没有说失败信息如何进入 Agent state。
-
-表达结构：一般。应该按“tool 目的-输入-输出-失败处理-state 更新”来回答。
-
-风险点：如果继续这么答，面试官会怀疑你只是知道“工具调用”这个词，但没有真正设计过工具接口。
-
-【评分】
-总分：62
-可信度：65
-技术准确性：55
-表达结构：60
-项目真实性：58
-
-【继续追问】
-如果政策检索工具返回了 5 条相似政策，其中有过期版本和低相关片段，你的 Agent 怎么过滤？
-```
-
-完整复盘示例：
-
-[examples/sample_interview_review.md](examples/sample_interview_review.md)
+> 这个项目是我自己转 AI 方向时 **为自己写的**。问题都是我踩过的坑，模式都是我被拷打过的真实场景。
 
 ---
 
-## 为什么不是直接问 ChatGPT？
+## ✨ 核心玩法
 
-你当然可以直接问 ChatGPT：“请模拟面试我。”
+### 四个真实面试阶段
 
-但普通聊天容易变成泛泛问答。这个项目做了几件更适合面试训练的事：
+| 阶段 | 侧重 |
+|---|---|
+| 📞 **电话筛选面** | 自我介绍、转行动机、岗位匹配、项目概览、沟通清晰度 |
+| 💻 **技术一面** | 项目链路、Agent / RAG / MCP / 后端基础、真实实现细节、排错能力 |
+| 🧭 **技术二面 / 主管面** | 方案取舍、业务价值、系统边界、**项目真实性**、推进能力 |
+| 🤝 **HR 面** | 动机稳定性、学习能力、抗压、地点 / 薪资 / 到岗时间 |
 
-| 能力 | 普通聊天 | Agent Interview Coach |
-|---|---|---|
-| 读取简历/项目材料 | 手动贴上下文 | 从本地资料目录抽取 |
-| 生成候选人画像 | 临时生成 | `/生成背景` 固化为面试背景 |
-| 动态追问 | 容易跑题 | 基于阶段、模式、弱点和项目材料 |
-| 项目真实性追问 | 不稳定 | 专门追 state、tool schema、RAG、失败处理 |
-| 训练记录 | 容易丢 | 保存评分、弱点、复盘、标准答案 |
-| 移动端练习 | 不方便 | 微信收发消息 |
-| 微信不可用时 | 无 fallback | CLI 模式可用 |
+### 四种训练模式
+
+| 模式 | 什么时候用 |
+|---|---|
+| 🧑‍🏫 **教练模式** | 基础还虚，想先补课再被追问 |
+| 🧑‍💻 **技术面模式** | 模拟真实技术面节奏，标准强度 |
+| 🔥 **拷打模式** | **抗压训练**，专抓名词堆砌、过度包装、项目真实性漏洞 |
+| 🎯 **只面试模式** | 纯问题流，不讲解析，模拟现场 |
+
+### 资料导入零门槛
+
+**直接把简历甩进微信对话框**：`.docx` / `.pdf` / `.md` / `.txt` 都行。机器人自动下载、切片、入库，然后 `/生成背景` 一键生成个性化面试材料。
 
 ---
 
-## 快速开始
+## 🚀 快速开始
 
-### 1. 安装
+**1. 装依赖**
 
 ```powershell
-git clone <repo-url>
-cd agent-interview-coach
-powershell -ExecutionPolicy Bypass -File .\install_windows.ps1
+cd C:\path\to\wechat-interview-coach
+python -m pip install -r requirements.txt
 ```
 
-安装脚本会：
+**2. 配 `.env`**
 
-- 安装 Python 依赖
-- 创建 `app\.env`
-- 创建 `app\resume_materials`
-- 提示后续操作
-
-### 2. 配置模型 API
-
-编辑：
-
-```text
-app\.env
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1   # 也可以指向任意兼容端点
+MODEL_NAME=gpt-4o-mini                      # 或你习惯的模型
+RESUME_SOURCE_DIR=C:\path\to\your\resume_materials
 ```
 
-填写：
-
-```text
-OPENAI_API_KEY=your_api_key
-OPENAI_BASE_URL=https://api.openai.com/v1
-MODEL_NAME=gpt-4.1-mini
-MODEL_API_STYLE=chat
-RESUME_SOURCE_DIR=./resume_materials
-MAX_CONTEXT_CHARS=18000
-ALLOWED_WECHAT_USER_ID=
-```
-
-如果你使用 OpenAI-compatible 服务，修改：
-
-```text
-OPENAI_BASE_URL
-MODEL_NAME
-MODEL_API_STYLE
-```
-
-### 3. 先跑 CLI 模式
-
-微信链路可能受环境影响。建议先确认核心面试官可用：
-
-```powershell
-cd app
-python smoke_test.py --model
-python cli_chat.py
-```
-
-CLI 里输入：
-
-```text
-/导入资料 ..\examples
-/生成背景
-开始电话面
-/模式 拷打
-```
-
-### 4. 再接微信
-
-扫码登录：
+**3. 登录微信**
 
 ```powershell
 wechat-clawbot-cc setup
 ```
 
-测试：
-
-```powershell
-python smoke_test.py --wechat
-```
-
-启动：
+**4. 启动**
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\start_bot.ps1
+# 停止： .\stop_bot.ps1    查看状态： .\status_bot.ps1
 ```
 
-查看状态：
+**5. 在微信里开聊**
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\status_bot.ps1
+```text
+/资料入口          ← 查看简历入口目录
+（或直接发一个 .docx / .pdf 到机器人）
+/生成背景          ← 生成个性化面试材料
+开始电话面          ← 走起
 ```
 
-停止：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\stop_bot.ps1
-```
+> 💡 没有微信？可以跑 `python cli_chat.py` 直接在命令行里面试。
 
 ---
 
-## 微信里怎么用？
+## 🎛️ 指令速查
 
-### 直接发送文件
-
-你可以把这些文件直接发给微信 bot：
-
-```text
-.docx
-.pdf
-.md
-.txt
-```
-
-bot 会自动下载到：
-
-```text
-app\resume_materials
-```
-
-然后回复你下一步运行：
-
-```text
-/生成背景
-```
-
-### 或者导入本地目录
-
-```text
-/资料入口
-/导入资料 C:\path\to\resume_materials
-/生成背景
-开始电话面
-```
-
-### 常用命令
-
-```text
-/帮助
-/资料入口
-/导入资料 路径
-/生成背景
-/模式 教练
-/模式 技术面
-/模式 拷打
-/模式 只面试
-开始电话面
-开始一面
-开始二面
-开始HR面
-/拷打 Support QA Agent
-/解释 MCP
-/今日弱点
-/复盘
-/标准答案
-/刷新
-/重置
-```
-
-模式说明：
-
-- `教练模式`：先补基础，再按面试标准纠偏。
-- `技术面模式`：正常技术面节奏，追问项目实现、技术取舍和真实细节。
-- `拷打模式`：高压追问，重点抓名词堆砌、项目真实性和边界风险。
-- `只面试模式`：减少教学解释，主要连续问问题。
+<table>
+<tr><th>类别</th><th>指令</th><th>说明</th></tr>
+<tr><td rowspan="3"><b>资料</b></td>
+    <td><code>/资料入口</code></td><td>查看简历入口目录</td></tr>
+<tr><td><code>/导入资料 &lt;路径&gt;</code></td><td>切换简历目录</td></tr>
+<tr><td><code>/生成背景</code></td><td>生成 <code>AI面试背景材料.generated.md</code></td></tr>
+<tr><td rowspan="4"><b>阶段</b></td>
+    <td><code>开始电话面</code></td><td>进入电话筛选</td></tr>
+<tr><td><code>开始一面</code></td><td>技术一面</td></tr>
+<tr><td><code>开始二面</code></td><td>技术二面 / 主管面</td></tr>
+<tr><td><code>开始HR面</code></td><td>HR 面</td></tr>
+<tr><td rowspan="4"><b>模式</b></td>
+    <td><code>/模式 教练</code></td><td>补基础 + 追问</td></tr>
+<tr><td><code>/模式 技术面</code></td><td>标准技术面节奏</td></tr>
+<tr><td><code>/模式 拷打</code></td><td>🔥 高压追问</td></tr>
+<tr><td><code>/模式 只面试</code></td><td>纯问题流</td></tr>
+<tr><td rowspan="5"><b>训练</b></td>
+    <td><code>/拷打 &lt;项目名&gt;</code></td><td>进入拷打模式并追问指定项目</td></tr>
+<tr><td><code>/解释 &lt;概念&gt;</code></td><td>先补基础，再给面试追问</td></tr>
+<tr><td><code>/今日弱点</code></td><td>查看累计薄弱点</td></tr>
+<tr><td><code>/复盘</code></td><td>生成复盘文件</td></tr>
+<tr><td><code>/标准答案</code></td><td>把最近一轮沉淀成可背答案</td></tr>
+<tr><td rowspan="3"><b>其他</b></td>
+    <td><code>/帮助</code></td><td>帮助</td></tr>
+<tr><td><code>/刷新</code></td><td>重新读取简历资料</td></tr>
+<tr><td><code>/重置</code></td><td>清空当前对话记忆</td></tr>
+</table>
 
 ---
 
-## 它会追问什么？
+## 🧱 是怎么跑起来的
 
-它尤其会盯这些容易露馅的点：
-
-- 这个项目的输入/输出是什么？
-- Agent state 里有哪些字段？
-- 每个 workflow node 负责什么？
-- tool schema 怎么定义？
-- 工具超时、失败、返回脏数据怎么办？
-- RAG 怎么切 chunk？
-- metadata filter 怎么设计？
-- 怎么评估召回质量？
-- 为什么需要 Redis/PostgreSQL？
-- 哪些部分只是 demo，不是生产级？
-- 这个项目里你本人到底做了什么？
-
----
-
-## 项目结构
-
-```text
-agent-interview-coach/
-├─ app/
-│  ├─ coach_bot.py          # 启动入口
-│  ├─ wechat_channel.py     # 微信长轮询、文件导入、回复发送
-│  ├─ commands.py           # 微信/CLI 命令路由
-│  ├─ engine.py             # 面试 prompt 组装和模型调用
-│  ├─ session_store.py      # 会话、评分、弱点、复盘、标准答案
-│  ├─ materials.py          # 资料目录、缓存刷新、微信文件下载
-│  ├─ interview_corpus.py   # docx/pdf/md/txt 抽取和检索
-│  ├─ profile_builder.py    # 生成 AI 面试背景材料
-│  ├─ model_client.py       # OpenAI-compatible API 调用
-│  ├─ prompts.py            # 阶段、模式、系统提示词
-│  ├─ cli_chat.py           # 命令行 fallback
-│  └─ smoke_test.py         # 连通性测试
-├─ examples/                # 完全虚构的简历、项目、背景、复盘示例
-├─ docs/
-│  ├─ setup.md
-│  ├─ architecture.md
-│  └─ privacy.md
-├─ skill/
-│  └─ SKILL.md              # Codex/Claude skill 使用说明
-├─ install_windows.ps1
-├─ doctor.ps1
-├─ requirements.txt
-├─ .env.example
-└─ README.md
+```
+     微信消息                     本地大脑
+   ┌─────────┐   inbound    ┌──────────────────┐
+   │  你发的  │ ───────────▶│  wechat_channel  │
+   │  问题/  │              │   (wechat-       │
+   │  简历   │              │    clawbot)      │
+   └─────────┘              └────────┬─────────┘
+                                     │
+            ┌────────────────────────┼────────────────────────┐
+            ▼                        ▼                        ▼
+      ┌──────────┐           ┌──────────────┐         ┌──────────────┐
+      │ commands │           │   engine     │         │  materials   │
+      │  指令路由 │           │  面试追问 +  │         │ 简历切片 +   │
+      │          │           │  四维打分    │         │ 上下文检索   │
+      └────┬─────┘           └──────┬───────┘         └──────┬───────┘
+           │                        │                        │
+           └──────────┬─────────────┴────────────┬───────────┘
+                     ▼                          ▼
+              ┌─────────────┐            ┌─────────────┐
+              │  sessions   │            │   corpus    │
+              │  .json      │            │   cache     │
+              │  (历史+弱点)│            │  (你的简历) │
+              └─────────────┘            └─────────────┘
+                     │
+                     ▼
+              📁 reviews/ + answers/   （自动复盘 & 可背答案）
 ```
 
----
-
-## 诊断
-
-遇到问题时运行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\doctor.ps1
-```
-
-它会检查：
-
-- Python 是否可用
-- 依赖是否安装
-- `.env` 是否存在
-- API key 是否填写，但不会打印 key
-- 模型是否连通
-- 微信凭据是否存在
-- 微信接口是否连通
+**技术栈**：Python 3.10+ · OpenAI 兼容 API · `wechat-clawbot` 桥接微信 · 本地 JSON / 文件持久化，零外部依赖。
 
 ---
 
-## 隐私与安全
+## 🗺️ Roadmap
 
-模型 API 本身不能直接读取你的电脑文件。这个项目的本地 Python 程序会读取你指定的资料目录，然后把相关片段作为上下文发给模型。
+- [x] 微信原生对话 + 文件直发入库
+- [x] 四阶段 × 四模式动态面试协议
+- [x] 四维打分 + 薄弱点累计
+- [x] 自动复盘 + 标准答案沉淀
+- [ ] 语音面试模式（TTS + STT）
+- [ ] 面试录音回放 & 带标注的 timeline 视图
+- [ ] 行业岗位包（算法岗 / 后端岗 / 大模型训练岗）
+- [ ] Web dashboard：可视化进步曲线
 
-不要提交这些文件：
-
-```text
-.env
-sessions.json
-interview_corpus_cache.json
-reviews/
-answers/
-resume_materials/
-真实简历和项目材料
-微信凭据
-API key 或 token
-```
-
-更多说明见：
-
-[docs/privacy.md](docs/privacy.md)
+欢迎 issue / PR。
 
 ---
 
-## 限制
+## 🔒 隐私
 
-- 微信能力依赖 `wechat-clawbot` 和上游服务，可能因为环境或上游变化而失效。
-- 当前项目更适合个人学习和面试训练，不适合群发、营销或商业自动化。
-- `/生成背景` 和面试追问质量取决于模型能力、简历材料质量和上下文长度。
-- 示例项目只用于面试训练，不代表真实公司系统或生产级实践。
+这个项目**设计上就是本地跑的**：
+
+- ✅ 简历、对话、复盘、答案 **全部留在你本机**
+- ✅ 只有**你主动发给模型的那部分内容**会走 OpenAI 兼容 API
+- ❌ **不要 commit**：`.env`、`sessions.json`、`interview_corpus_cache.json`、`reviews/`、`answers/`、日志、微信凭证、API Key、真实简历
+
+> 本项目仅用于个人学习和本地面试训练。微信连通性依赖 `wechat-clawbot` 和上游行为，上游变化可能导致失效。**请勿**用于群发、商业自动化或违反平台条款的场景。
 
 ---
 
-## License
+## 🤝 贡献
 
-MIT
+这个项目诞生于一个转行 AI 的人的真实焦虑。如果它也帮到你，欢迎：
+
+- ⭐ Star —— 最直接的鼓励
+- 🐛 开 Issue 讲你踩的坑
+- 🔧 PR 你觉得面试官"就该这么问"的追问策略
+- 📣 把它推给同样在刷 AI 岗的朋友
+
+---
+
+<div align="center">
+
+**如果它帮你拿到了 offer，记得回来说一声。** 🎉
+
+<sub>Built for the career switchers who refuse to recite interview question banks.</sub>
+
+</div>
